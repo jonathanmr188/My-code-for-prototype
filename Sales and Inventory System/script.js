@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-report").addEventListener("click", runLowStockReport);
     document.getElementById("btn-save").addEventListener("click", saveSystemState);
 });
-                                                                                                                                                                                  
+
 async function loadInventory() {
     try {
         const response = await fetch(`${API_URL}/items`);
