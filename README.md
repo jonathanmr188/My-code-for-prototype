@@ -41,6 +41,6 @@ The browser pages and API host are not yet wired together for a complete end-to-
 
 - Both HTML pages reference `script.js` beside the HTML file, but the tracked script is currently under `Sales and Inventory System/`.
 - The ASP.NET Core project uses the default static-file configuration, while the HTML, CSS, and JavaScript files are not currently organized under its default `wwwroot` directory.
-- The browser script calls `/api/warehouse` endpoints for inventory, sales, suppliers, summaries, and saving state. No API controllers implementing those routes are currently present in the project.
+
 
 These are integration tasks for a future iteration; the repository currently documents the intended prototype UI and API behavior rather than a fully operational inventory service.
