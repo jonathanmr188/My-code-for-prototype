@@ -109,8 +109,6 @@ public class Warehouse<T> where T : class, IStockable
         return inventory.ContainsKey(itemId);
     }
 
-
-
     public void ReceiveStock(string itemId, string name, int quantity) 
     {
         try  
@@ -172,9 +170,9 @@ class Program
         
         warehouse.LowStockAlert += AuditLogger.LogAlert;
 
-        warehouse.SeedItem("A1", new InventoryItem("A1", "Wireless Mouse", 12));
-        warehouse.SeedItem("B2", new InventoryItem("B2", "Mechanical Keyboard", 3)); // Will trigger low stock alert if processed
-        warehouse.SeedItem("C3", new InventoryItem("C3", "4K Monitor", 7));
+        warehouse.SeedItem(1, new InventoryItem(1, "Wireless Mouse", 12));
+        warehouse.SeedItem(2, new InventoryItem(2, "Mechanical Keyboard", 3)); // Will trigger low stock alert if processed
+        warehouse.SeedItem(3, new InventoryItem(3, "4K Monitor", 7));
 
         builder.Services.Singleton(warehouse);
 

@@ -1,5 +1,6 @@
 const API_URL = "/api/warehouse";
 
+// Initialize and bind system event handlers on page load
 document.addEventListener("DOMContentLoaded", () => {
     loadInventory();
     loadSales();
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-save").addEventListener("click", saveSystemState);
 });
 
+// 1. Core Data Retrieval Functions
 async function loadInventory() {
     try {
         const response = await fetch(`${API_URL}/items`);
@@ -48,6 +50,7 @@ async function loadSuppliers() {
     }
 }
 
+// 2. Data Rendering Engines
 function renderTable(items) {
     const tableBody = document.getElementById("inventory-table-body");
     tableBody.innerHTML = "";
@@ -67,7 +70,6 @@ function renderTable(items) {
                 <td>${item.quantity} units</td>
                 <td>R ${Number(item.price || 0).toFixed(2)}</td>
                 <td>
-                    
                     <div class="supplier-cell">
                         <strong>${supplierName}</strong>
                         <small>${supplierPhone}</small>
@@ -131,6 +133,7 @@ function renderSalesHistory(sales) {
     });
 }
 
+// 3. Form Submission Handling Actions
 async function handleStockUpdate(e) {
     e.preventDefault();
     const id = document.getElementById("item-id").value;
@@ -213,6 +216,7 @@ async function handleSupplierAdd(e) {
     }
 }
 
+// 4. Calculations & KPI Cards Updating Engine
 function calculateTotals(items) {
     const total = items.reduce((sum, item) => sum + item.quantity, 0);
     const inventoryValue = items.reduce((sum, item) => sum + (item.quantity * Number(item.price || 0)), 0);
@@ -235,6 +239,7 @@ function updateSummaryCards(summary, sales) {
     }
 }
 
+// 5. System Health Monitors & Audit Systems
 function checkLowStockAlerts(items) {
     const lowStock = items.filter(item => item.quantity < 5);
     const alertBanner = document.getElementById("alert-banner");
@@ -269,15 +274,3 @@ async function saveSystemState() {
         const res = await fetch(`${API_URL}/save`, { method: "POST" });
         if (res.ok) {
             const result = await res.json();
-            alert(`State successfully saved. ${result.salesLogged} sales tracked and ${result.count} products recorded.`);
-        }
-    } catch (e) {
-        showGlobalAlert("File I/O operations halted.");
-    }
-}
-
-function showGlobalAlert(message) {
-    const banner = document.getElementById("alert-banner");
-    banner.innerText = `❌ Error: ${message}`;
-    banner.classList.remove("hidden");
-    setTimeout(() => banner.classList.add("hidden"), 5240);

@@ -1,125 +1,153 @@
 # Web API Implementation Guide
 
-This is a manual implementation reference for wiring the warehouse dashboard to the ASP.NET Core host. It describes the repository as it currently stands and the work required for an end-to-end run; it does not claim that the API is already implemented.
+This guide is based on the current code in `Sales and Inventory System/Program.cs` and `Sales and Inventory System/wwwroot/`. It describes what to implement before the inventory API and browser can work end to end.
 
-## Current state
+## Current status
 
-- The ASP.NET Core project is `Sales and Inventory System/`.
-- The host's static files are in `Sales and Inventory System/wwwroot/`. This is where the app's HTML, CSS, and JavaScript must be kept.
-- There is also a root-level `wwwroot/` copy. ASP.NET does not serve that copy when running the nested project.
-- `Program.cs` currently calls `UseDefaultFiles()` and `UseStaticFiles()`, so the host can serve the page files.
-- `Program.cs` does not map API routes or controllers. The C# inventory types in it are not registered as an application service, initialized with data, or connected to HTTP requests.
-- `Sales and Inventory System/wwwroot/script.js` requests `/api/warehouse/...`. Those routes do not currently exist, so the browser's API-backed operations cannot succeed yet.
-- The same script is loaded by both pages, even though the sales page does not contain all the forms and metric elements that the manager page has. The script currently attaches event listeners and updates elements without first checking whether those elements exist.
+The project has started moving from a static site toward an API:
+
+- The ASP.NET Core app serves static files from `Sales and Inventory System/wwwroot/`.
+- `Program.cs` now attempts to seed a `Warehouse<InventoryItem>`, register it, and map three Minimal API routes:
+  - `GET /api/inventory`
+  - `GET /api/inventory/{id}`
+  - `POST /api/inventory/receive`
+- Those routes are not yet a complete API for the pages. The browser requests `/api/warehouse/...`, including sales, summary, suppliers, and save routes.
+- The new startup code calls `SeedItem` and `GetAllItems`, but neither method is implemented in the current `Warehouse<T>` class. `builder.Services.Singleton(warehouse)` should be replaced with a supported DI registration such as `builder.Services.AddSingleton(warehouse)`.
+- `InventoryItem` only stores an ID, name, and quantity. It has no price or supplier data, which the inventory page displays.
+- The browser uses numeric item inputs and converts IDs to numbers. The API request record and seeded IDs use strings (`A1`, `B2`, `C3`). These IDs and types need to be made consistent.
+- `Sales and Inventory System/wwwroot/index.html` currently has no `<script src="script.js"></script>`, so it does not run the browser code.
+- The shared `script.js` assumes that every page has the same forms and display elements, but the sales page and manager page differ. The current script also ends in the middle of `saveSystemState()` and does not include a complete function body or the `showGlobalAlert()` function, so it must be repaired before it can run.
+
+Until these gaps are addressed, the API is not yet buildable and the browser cannot complete the intended workflows.
 
 ## Recommended implementation order
 
-### 1. Choose a data store
+### 1. Make IDs consistent
 
-For the first end-to-end prototype, create a `WarehouseService` containing the inventory, sales, and supplier collections, seed it with a small set of records, and register it with dependency injection as a singleton. A singleton keeps one shared state for all requests while the process runs.
+The current domain model and seed data use string IDs such as `A1`, `B2`, and `C3`. The least disruptive path is to keep string IDs:
 
-This in-memory approach is useful for proving the browser/API workflow, but all changes are lost when the server restarts. If records must persist, use a database (for example SQLite with Entity Framework Core) instead of treating in-memory state or the save button as persistence.
+1. Change the item ID inputs in both HTML pages from `type="number"` to `type="text"` so users can enter IDs such as `A1`.
+2. In `script.js`, send `itemId: id` rather than `itemId: Number(id)`.
+3. Keep the API request DTO's `ItemId` as a string and use string keys throughout the warehouse.
+4. Update the placeholder text to show a seeded ID, for example `A1`.
 
-Decide on one ID type before implementing routes. The browser currently sends numeric item IDs, but `InventoryItem.Id` in `Program.cs` is a string. Either standardize on integer IDs or update the browser and DTOs to use string IDs.
+Alternatively, convert the domain model, dictionary keys, seeds, DTOs, and browser to integer IDs. Do not mix the two schemes.
 
-### 2. Create API-facing models
+### 2. Complete the warehouse collection methods
 
-Use explicit request and response DTOs instead of binding HTTP requests directly to domain objects. At minimum, plan for:
+The existing warehouse uses a private dictionary and currently has no public way to seed or list items. Add methods that:
 
-- An inventory item response containing `id`, `name`, `quantity`, `price`, and a `supplier` object (or `null`) with `name`, `phone`, and `email`.
-- A supplier response containing `name`, `contact`, `phone`, and `email`.
-- A sale response containing `itemName`, `quantitySold`, `totalAmount`, and `soldAt`.
-- A stock-change request and sale request containing `itemId` and `quantity`.
-- A supplier-create request containing `name`, `contact`, `phone`, and `email`.
-- A summary response containing `totalStockVolume`, `totalInventoryValue`, `totalRevenue`, and `totalUnitsSold`.
+- Add an item using its ID as the dictionary key.
+- Reject duplicate IDs rather than silently replacing records.
+- Return all items for the collection endpoint, preferably as a copy or read-only collection.
+- Preserve the invariant that an item's `Id` matches its dictionary key.
 
-The names and types must agree with the JavaScript. For example, the stock and sale forms send JSON like:
+The `SeedItem` and `GetAllItems` calls already present in `Program.cs` should correspond to these methods. Also make sure stock changes cannot result in a negative quantity. The existing `ReceiveStock` catches missing-item exceptions and logs to the console; API code must be able to distinguish a failed operation from a successful one. Return a result or allow a suitable exception to be handled as an HTTP error.
 
-```json
-{ "itemId": 2, "quantity": 3 }
-```
+### 3. Register the warehouse correctly and seed it once
 
-The sale handler expects a successful response shaped like:
+In `Program.cs`, create and seed the warehouse before building the app, then register that exact instance in dependency injection. With the existing `using Microsoft.Extensions.DependencyInjection`, the registration should use the supported `AddSingleton` API, for example `builder.Services.AddSingleton(warehouse)`.
+
+An in-memory singleton is sufficient for a local prototype: the state is shared between requests but is lost when the process restarts. If data must survive restarts, implement a database-backed repository (SQLite is one local option) instead of relying on the singleton or a binary save file.
+
+After adding the missing warehouse methods and fixing registration, run `dotnet build` before proceeding. Resolve compile errors before testing HTTP behavior.
+
+### 4. Choose one API route contract
+
+The current API routes use `/api/inventory`; the browser uses `/api/warehouse`. Pick one contract and use it in both places. To minimize edits to the browser, use `/api/warehouse` and make the routes match these calls in `Sales and Inventory System/wwwroot/script.js`:
+
+| Method | Route | Required behavior |
+| --- | --- | --- |
+| `GET` | `/api/warehouse/items` | Return the inventory array |
+| `GET` | `/api/warehouse/sales` | Return sales history |
+| `GET` | `/api/warehouse/summary` | Return dashboard totals |
+| `GET` | `/api/warehouse/suppliers` | Return suppliers |
+| `POST` | `/api/warehouse/receive` | Adjust stock for an item |
+| `POST` | `/api/warehouse/sale` | Decrease stock and record a sale |
+| `POST` | `/api/warehouse/suppliers` | Add a supplier |
+| `POST` | `/api/warehouse/save` | Save/export state, or remove this UI operation |
+
+You can keep `GET /api/inventory/{id}` as an additional useful endpoint. If you prefer to keep the current `/api/inventory` route names, update every browser request to match and still implement sales, suppliers, summary, and save if those UI features are retained.
+
+Use a route group such as `app.MapGroup("/api/warehouse")` to avoid repeating the prefix. Keep endpoint handlers thin: validate/request-bind, call the warehouse/service, and return an HTTP result. Keep state changes and business rules in the warehouse/service.
+
+### 5. Add models for data the UI actually displays
+
+The current `InventoryItem` only has `Id`, `Name`, and `Quantity`. Extend the domain model or map it to response DTOs so `GET /items` returns at least:
 
 ```json
 {
-  "sale": {
-    "itemName": "Example item",
-    "quantitySold": 1,
-    "totalAmount": 25.0,
-    "soldAt": "2026-11-04T16:30:00Z"
+  "id": "A1",
+  "name": "Wireless Mouse",
+  "quantity": 12,
+  "price": 249.99,
+  "supplier": {
+    "name": "Example Supplier",
+    "phone": "0123456789",
+    "email": "supplier@example.com"
   }
 }
 ```
 
-Keep the sale price/total with the sale record. Recalculating historical sales from an item's current price can produce incorrect revenue after a price change.
+The UI also needs these shapes:
 
-### 3. Implement business operations in the service
+- Stock request: `{ "itemId": "A1", "quantity": 3 }`
+- Sale request: `{ "itemId": "A1", "quantity": 2 }`
+- Supplier request: `{ "name": "...", "contact": "...", "phone": "...", "email": "..." }`
+- Sale response: `{ "sale": { "itemName": "...", "quantitySold": 2, "totalAmount": 499.98, "soldAt": "..." } }`
+- Summary response: `{ "totalStockVolume": 12, "totalInventoryValue": 2999.88, "totalRevenue": 499.98, "totalUnitsSold": 2 }`
+- Save response, if retained: `{ "salesLogged": 1, "count": 3 }`
 
-Keep state changes and business rules in `WarehouseService`; HTTP endpoints should validate the request shape, call the service, and translate outcomes into HTTP responses.
+Use separate sales and supplier records. A sale should store its own quantity, unit price or total, item name/ID, and timestamp. Otherwise, changing an item's price later can corrupt the displayed historical revenue.
 
-Implement and verify these rules:
+### 6. Implement and validate operations
 
-- Receiving stock changes an existing item's quantity. The resulting quantity must not be negative.
-- A sale quantity must be greater than zero; the item must exist; and the requested quantity cannot exceed stock. A successful sale decreases inventory and records the sale.
-- Supplier creation requires a non-empty name; validate any other fields required by the product.
-- A missing item should be reported to the API caller rather than only printed to the console.
-- Return clear client errors for invalid input and missing resources. Typical responses are `400 Bad Request` for invalid requests and `404 Not Found` for unknown IDs.
+For each mutation:
 
-The existing `Warehouse<T>.ReceiveStock` catches a missing-item exception and writes to the console, which hides failure from an API caller. If you reuse that class, change it to return a result or let an exception reach a layer that can translate it into an HTTP error. The current warehouse class also lacks a public method to add items and a method to list its inventory, so it needs further work before it can back the endpoints.
+- Reject invalid or missing request data with `400 Bad Request`.
+- Return `404 Not Found` when the requested item does not exist.
+- Reject a sale quantity less than one or greater than available stock.
+- Reject stock adjustments that would leave quantity negative.
+- On a successful sale, reduce stock and append the sale record as one logical operation.
+- Validate the supplier name and any other required supplier fields.
+- Return structured JSON errors that the browser can display.
 
-### 4. Add the HTTP endpoints
+The current manager UI describes stock quantity as a modification, allowing positive and negative values. If negative adjustments are supported, calculate the proposed new quantity and validate it before changing the item. Do not allow an unhandled `ArgumentOutOfRangeException` to become a generic server error.
 
-The simplest fit for this project is ASP.NET Core Minimal APIs. Register the service before `builder.Build()` and map a route group under `/api/warehouse` after building the app. Alternatively, implement controllers and use both `AddControllers()` and `MapControllers()`; choose one approach rather than adding unused controller configuration.
+### 7. Repair and align the browser
 
-Implement this contract, or change the JavaScript and this table together:
+Before API testing, repair `Sales and Inventory System/wwwroot/script.js`:
 
-| Method | Route | Response/operation |
-| --- | --- | --- |
-| `GET` | `/api/warehouse/items` | JSON array of inventory items |
-| `GET` | `/api/warehouse/sales` | JSON array of sales |
-| `GET` | `/api/warehouse/summary` | Summary fields listed above |
-| `GET` | `/api/warehouse/suppliers` | JSON array of suppliers |
-| `POST` | `/api/warehouse/receive` | Adjust stock using `{ itemId, quantity }` |
-| `POST` | `/api/warehouse/sale` | Record a sale using `{ itemId, quantity }`; return `{ sale: ... }` |
-| `POST` | `/api/warehouse/suppliers` | Add supplier using `{ name, contact, phone, email }` |
-| `POST` | `/api/warehouse/save` | Save/export state and return `{ salesLogged, count }`, or remove this UI operation if it is not needed |
+1. Complete `saveSystemState()` and restore its error handling and closing braces. The current file ends after parsing the response, which leaves the JavaScript syntactically incomplete.
+2. Restore or implement `showGlobalAlert()`, which other functions call.
+3. Add `<script src="script.js"></script>` to `index.html` before `</body>` if the sales page should use the API.
+4. Since the pages do not contain the same controls, only bind an event listener if its form/button exists. Likewise, only render into or update metric elements that exist. Alternatively, split manager and sales scripts.
+5. Check `response.ok` on GET requests before treating the response body as valid data. For mutations, display the API's error body on non-success responses.
+6. Make form IDs and value types match the selected ID scheme and request DTOs.
 
-The save response fields matter because the browser displays `result.salesLogged` and `result.count`. If the operation writes a file, define its location deliberately and handle I/O errors; for durable application data, prefer a database.
+Do this in the nested project's `wwwroot` directory. The repository-root `wwwroot/` is a separate copy and is not the static root used when running the nested ASP.NET project.
 
-### 5. Align browser initialization with each page
+### 8. Test the API and pages
 
-Both `index.html` and `Manager interface-1.html` load the same `script.js`, but the sales page does not include the stock form, supplier form, supplier table, or all manager metrics. Either:
-
-1. Check for each element before adding a listener or updating it, and skip page-specific work when it is absent; or
-2. Use separate page-specific scripts and share only common API/rendering functions.
-
-Also check `response.ok` before parsing a response as successful JSON, and display the API's error message when an operation fails. The current script catches several errors but does not consistently report non-success HTTP responses for its read operations or the save operation.
-
-## Manual end-to-end test
-
-Run the host from the repository root:
+From the repository root:
 
 ```powershell
+dotnet build "Sales and Inventory System/Sales and Inventory System.csproj"
 dotnet run --project "Sales and Inventory System/Sales and Inventory System.csproj" --launch-profile http
 ```
 
-Open:
+Open `http://localhost:5240/` and `http://localhost:5240/Manager%20interface-1.html`. Because the same ASP.NET app serves pages and API, requests to relative `/api/...` URLs are same-origin; CORS is not needed. Do not use `file://` or a different Live Server origin for this setup.
 
-- `http://localhost:5240/` for the sales page
-- `http://localhost:5240/Manager%20interface-1.html` for the manager page
+Verify in this order:
 
-Since the pages and API use the same ASP.NET host, the browser's relative `/api/warehouse` requests are same-origin; CORS setup is not needed for this arrangement. Do not open the HTML using `file://` or use a separate Live Server origin for this workflow.
+1. `GET http://localhost:5240/api/warehouse/items` returns seeded item JSON with the fields the table uses.
+2. `GET /api/warehouse/sales`, `/summary`, and `/suppliers` each return valid JSON with the documented fields.
+3. Both pages load without JavaScript syntax errors or null-element errors in the browser developer console.
+4. A valid stock adjustment updates the returned item quantity. An unknown ID and a negative resulting quantity return errors without corrupting state.
+5. A valid sale reduces stock and appears in sales history. Attempting to sell more than available stock returns an error and does not create a sale.
+6. Supplier creation returns success and the supplier appears in the directory.
+7. Summary values change consistently after stock and sales operations.
+8. The save button returns the fields the browser expects, or is removed if saving is not implemented.
+9. Restart the host and confirm expected persistence behavior. In-memory state resets; persistent storage requires a database.
 
-Test in this order:
-
-1. Request `http://localhost:5240/api/warehouse/items` and confirm it returns the expected JSON array.
-2. Load both pages and check the browser developer console for missing-element errors.
-3. Record a sale for an item with sufficient quantity. Confirm the response contains the `sale` object, inventory decreases, and the sale appears in history.
-4. Try selling more than the remaining quantity and confirm the API rejects it without changing stock.
-5. On the manager page, add stock and confirm the item quantity and summary update.
-6. Add a supplier and confirm it appears in the supplier directory and relevant item response.
-7. Check the low-stock report and save action. Confirm the save response contains `salesLogged` and `count`, or remove/update the save feature if it is not implemented.
-8. Restart the host. If the records reset, that is expected for an in-memory service; configure persistent storage if restart persistence is a requirement.
-
-The sample request file `Sales and Inventory System/Sales and Inventory System.http` can be updated with these requests to make the API checks repeatable.
+Update `Sales and Inventory System/Sales and Inventory System.http` with these requests to make the API checks repeatable.
