@@ -20,12 +20,11 @@ body {
     background-color: var(--bg-primary);
     color: var(--text-main);
     padding: 2rem;
-    min-height: 100vh; 
 }
 
 .app-container {
-    width: 100%; /* Span the page width */
-    margin: 0;
+    max-width: 1400px;
+    margin: 0 auto;
 }
 
 header {
@@ -94,7 +93,7 @@ button {
 .supplier-btn { background: #7c3aed; }
 .supplier-btn:hover { background: #6d28d9; }
 
-.btn-secondary { background: #e5e5eb; color: #374151; margin-top: 0.5rem; }
+.btn-secondary { background: #e5e7eb; color: #374151; margin-top: 0.5rem; }
 .btn-secondary:hover { background: #d1d5db; }
 
 .metric {
