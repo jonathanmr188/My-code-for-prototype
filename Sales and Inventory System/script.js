@@ -266,18 +266,18 @@ async function runLowStockReport() {
 
 async function saveSystemState() {
     try {
-        const result = await requestJson(`${API_URL}/save`, { method: "POST" });
-        alert(`State saved. ${result.salesLogged} sales and ${result.count} products recorded.`);
-    } catch (error) {
-        showGlobalAlert(error.message);
+        const res = await fetch(`${API_URL}/save`, { method: "POST" });
+        if (res.ok) {
+            const result = await res.json();
+            alert(`State successfully saved. ${result.salesLogged} sales tracked and ${result.count} products recorded.`);
+        }
+    } catch (e) {
+        showGlobalAlert("File I/O operations halted.");
     }
 }
 
-function showGlobalAlert(message, isError = true) {
+function showGlobalAlert(message) {
     const banner = document.getElementById("alert-banner");
-    if (!banner)
-        return;
-    banner.textContent = message;
+    banner.innerText = `❌ Error: ${message}`;
     banner.classList.remove("hidden");
-    banner.classList.toggle("success-banner", !isError);
-    setTimeout(() => banner.classList.add("hidden"), 5000);
+    setTimeout(() => banner.classList.add("hidden"), 5240);
