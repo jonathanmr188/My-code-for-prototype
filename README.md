@@ -13,26 +13,29 @@ A prototype warehouse inventory and sales dashboard. The repository contains two
 
 | Path | Purpose |
 | --- | --- |
-| `index.html` | Sales dashboard |
-| `Manager interface-1.html` | Manager dashboard with stock and supplier controls |
-| `style.css` | Shared dashboard styles |
-| `Sales and Inventory System/` | ASP.NET Core project and browser-side script |
+| `Sales and Inventory System/` | ASP.NET Core web host |
 | `Sales and Inventory System/Program.cs` | ASP.NET Core startup and middleware configuration |
-| `Sales and Inventory System/script.js` | Dashboard behavior and API requests |
+| `Sales and Inventory System/wwwroot/` | Pages, styles, and browser script served by the host |
+| `wwwroot/` | Root-level copy of the browser files; not served by the nested ASP.NET project |
 
 ## Requirements
 
 - .NET 10 SDK
 - A modern web browser
 
+## API implementation reference
+
+The current host serves static pages but does not yet implement the `/api/warehouse` endpoints called by the browser. See [API-IMPLEMENTATION-GUIDE.md](./API-IMPLEMENTATION-GUIDE.md) for the current state, endpoint contract, implementation steps, and manual test flow.
+
 ## Run the ASP.NET Core project
 
 From the repository root:
 
 ```powershell
-dotnet run --project "Sales and Inventory System/Sales and Inventory System.csproj"
+dotnet run --project "Sales and Inventory System/Sales and Inventory System.csproj" --launch-profile http
 ```
 
+Open `http://localhost:5240/` for the sales dashboard or `http://localhost:5240/Manager%20interface-1.html` for the manager dashboard. The pages are served, but API-backed features will not work until the routes described in the implementation guide are added.
 The application prints its local address when it starts.
 
 ## Current prototype limitations

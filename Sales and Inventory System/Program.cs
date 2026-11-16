@@ -1,7 +1,10 @@
 using System; 
 using System.IO; 
 using System.Collections.Generic; 
-using System.Linq; 
+using System.Linq;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 public enum ItemStatus 
 { 
@@ -153,18 +156,63 @@ public static class AuditLogger
         Console.WriteLine($"Stock is getting low for: {itemName}"); 
     } 
 } 
-  
+
+//Register the Warehouse class as a application
+//Wire up the LowStockAlert event to the AuditLogger
+//Initialize/Seed the Warehouse with mock data
 class Program 
 { 
     static void Main(string[] args) 
     { 
         var builder = WebApplication.CreateBuilder(args);
-        builder.Services.AddControllers();
+
+        var warehouse = new Warehouse<InventoryItem>();
+        
+        warehouse.LowStockAlert += AuditLogger.LogAlert;
+
+        warehouse.SeedItem(1, new InventoryItem(1, "Wireless Mouse", 12));
+        warehouse.SeedItem(2, new InventoryItem(2, "Mechanical Keyboard", 3)); // Will trigger low stock alert if processed
+        warehouse.SeedItem(3, new InventoryItem(3, "4K Monitor", 7));
+
+        builder.Services.Singleton(warehouse);
 
         var app = builder.Build();
+        
+// Configuration for handling static hosting files via Sales and Inventory
         app.UseDefaultFiles();
         app.UseStaticFiles();
-        app.MapControllers();
+
+        // 4. Map HTTP Minimal API Route endpoints
+
+//get: all inventory items and single item by ID
+        app.MapGet("/api/inventory", (Warehouse<InventoryItem> wh) => 
+        {
+            return Results.Ok(wh.GetAllItems());
+        });
+
+        app.MapGet("/api/inventory/{id}", (string id, Warehouse<InventoryItem> wh) => 
+        {
+            var item = wh[id];
+            return item is not null ? Results.Ok(item) : Results.NotFound(new { message = "Item not found" });
+        });
+
+        // POST: Update item quantities ensureing that the item exists and quantity is valid above 5
+        app.MapPost("/api/inventory/receive", (StockUpdateRequest request, Warehouse<InventoryItem> wh) => 
+        {
+            var item = wh[request.ItemId];
+            if (item is null)
+            {
+                return Results.NotFound(new { message = $"Item ID '{request.ItemId}' does not exist." });
+            }
+
+            // Invokes logic, safety constraints, and delegates tracking
+            wh.ReceiveStock(request.ItemId, item.Name, request.Quantity);
+            return Results.Ok(new { message = "Stock updated successfully.", currentQuantity = item.Quantity });
+        });
+        
         app.Run();
     } 
 }
+
+// Data Transfer Object for incoming JSON payloads
+public record StockUpdateRequest(string ItemId, int Quantity);
