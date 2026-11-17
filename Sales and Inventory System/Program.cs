@@ -26,6 +26,11 @@ public class InventoryItem : IStockable
     private string _name;
     private int _quantity;
 
+    
+    public decimal Price { get; set; }
+    public string Supplier { get; set; }
+    public string Status => Quantity == 0 ? "Sold Out" : (Quantity < 5 ? "Low Stock" : "In Stock");
+    
     public string Id
     {
         get { return _itemId; }
@@ -48,7 +53,7 @@ public class InventoryItem : IStockable
         set { _name = value; }
     }
     
-    public InventoryItem(string itemId, string name, int quantity) 
+    public InventoryItem(string itemId, string name, int quantity, decimal price = 0, string supplier = "General") 
     { 
         if (string.IsNullOrWhiteSpace(itemId)) 
             throw new ArgumentException("Item cannot be empty"); 
@@ -56,6 +61,9 @@ public class InventoryItem : IStockable
         this._itemId = itemId; 
         this._name = name; 
         this.Quantity = quantity; 
+        this.Price = price;
+        this.Supplier = supplier;
+
         //this.Status = quantity > 0 ? ItemStatus.InStock : ItemStatus.SoldOut;
     }
 
@@ -99,6 +107,17 @@ public class Warehouse<T> where T : class, IStockable
         get { return inventory.ContainsKey(id) ? inventory[id] : null; } 
     }
 
+    public void SeedItem(string id, T item)
+    {
+        inventory[id] = item;
+    }
+
+    public IEnumerable<T> GetAllItems()
+    {
+        return inventory.Values;
+    }
+
+
     public virtual void OnLowStockAlert(string itemName) 
     { 
         LowStockAlert?.Invoke(itemName); 
@@ -121,13 +140,17 @@ public class Warehouse<T> where T : class, IStockable
             var item = inventory[itemId];
             if (item is InventoryItem invItem)
             {
-                invItem.Quantity += quantity;
-                if (invItem.Quantity < 5)
-                {
-                    OnLowStockAlert(invItem.Name);
-                }
+                                            
+                                            
+                                            // This will ensure bad request response and not crash the application if interger is negative
+        invItem.Quantity += quantity;
+        
+        if (invItem.Quantity < 5)
+        {
+            OnLowStockAlert(invItem.Name);
+        }
+        
             }
-            Console.WriteLine("Stock message updated."); 
         }
         catch (KeyNotFoundException ex) 
         { 
@@ -157,9 +180,9 @@ public static class AuditLogger
     } 
 } 
 
-//Register the Warehouse class as a application
-//Wire up the LowStockAlert event to the AuditLogger
-//Initialize/Seed the Warehouse with mock data
+                                    //Register the Warehouse class as a application
+                                    //Wire up the LowStockAlert event to the AuditLogger
+                                    //Initialize/Seed the Warehouse with mock data
 class Program 
 { 
     static void Main(string[] args) 
@@ -170,21 +193,27 @@ class Program
         
         warehouse.LowStockAlert += AuditLogger.LogAlert;
 
-        warehouse.SeedItem(1, new InventoryItem(1, "Wireless Mouse", 12));
-        warehouse.SeedItem(2, new InventoryItem(2, "Mechanical Keyboard", 3)); // Will trigger low stock alert if processed
-        warehouse.SeedItem(3, new InventoryItem(3, "4K Monitor", 7));
+        warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 350.00m, "Cleanaway Pty Ltd."));
+        warehouse.SeedItem("2", new InventoryItem("2", "A4 Paper - 500 Sheets", 3, 150.00m, "PaperWorks Pty Ltd.")); 
+        warehouse.SeedItem("3", new InventoryItem("3", "Projector", 7, 1499.00m, "NolanTech Pty Ltd"));
 
-        builder.Services.Singleton(warehouse);
+        builder.Services.AddSingleton(warehouse);
 
         var app = builder.Build();
         
-// Configuration for handling static hosting files via Sales and Inventory
+                                    // Configuration for handling static hosting files via Sales and Inventory
         app.UseDefaultFiles();
         app.UseStaticFiles();
 
         // 4. Map HTTP Minimal API Route endpoints
 
-//get: all inventory items and single item by ID
+
+
+
+
+
+
+                                    //get: all inventory items and single item by ID
         app.MapGet("/api/inventory", (Warehouse<InventoryItem> wh) => 
         {
             return Results.Ok(wh.GetAllItems());
@@ -196,7 +225,7 @@ class Program
             return item is not null ? Results.Ok(item) : Results.NotFound(new { message = "Item not found" });
         });
 
-        // POST: Update item quantities ensureing that the item exists and quantity is valid above 5
+                                    // POST: Update item quantities ensureing that the item exists and quantity is valid above 5
         app.MapPost("/api/inventory/receive", (StockUpdateRequest request, Warehouse<InventoryItem> wh) => 
         {
             var item = wh[request.ItemId];
@@ -214,5 +243,5 @@ class Program
     } 
 }
 
-// Data Transfer Object for incoming JSON payloads
+                                    // Data Transfer Object for incoming JSON payloads
 public record StockUpdateRequest(string ItemId, int Quantity);
