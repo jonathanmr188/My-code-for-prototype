@@ -218,7 +218,7 @@ class Program
 
 
 
-                                    //get: all inventory items and single item by ID
+                                    //get: all inventory items and single item by ID search
         app.MapGet("/api/inventory", (Warehouse<InventoryItem> wh) => 
         {
             return Results.Ok(wh.GetAllItems());
@@ -230,7 +230,7 @@ class Program
             return item is not null ? Results.Ok(item) : Results.NotFound(new { message = "Item not found" });
         });
 
-                                    // POST: Update item quantities ensureing that the item exists and quantity is valid above 5
+                                    // Update the item quantities ensureing that the item exists and quantity is valid above 5
         app.MapPost("/api/inventory/receive", (StockUpdateRequest request, Warehouse<InventoryItem> wh) => 
         {
             var item = wh[request.ItemId];
