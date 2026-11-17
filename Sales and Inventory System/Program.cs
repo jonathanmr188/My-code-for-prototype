@@ -193,9 +193,18 @@ class Program
         
         warehouse.LowStockAlert += AuditLogger.LogAlert;
 
-        warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 350.00m, "Cleanaway Pty Ltd."));
+         warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 350.00m, "Cleanaway Pty Ltd."));
         warehouse.SeedItem("2", new InventoryItem("2", "A4 Paper - 500 Sheets", 3, 150.00m, "PaperWorks Pty Ltd.")); 
         warehouse.SeedItem("3", new InventoryItem("3", "Projector", 7, 1499.00m, "NolanTech Pty Ltd"));
+
+        // ADDED: In-memory storage for Suppliers and Sales tables in your HTML
+        var suppliers = new List<SupplierRecord>
+        {
+            new("Cleanaway Pty Ltd.", "Joy Babedi", "082 123 4567", "orders@cleanaway.co.za"),
+            new("PaperWorks Pty Ltd.", "Jonathan Moore", "079 123 4567", "sales@paperworks.co.za"),
+            new("NolanTech Pty Ltd", "Nolan Moore", "066 245 6789", "info@nolantech.co.za")
+        };
+        var sales = new List<SaleRecord>();
 
         builder.Services.AddSingleton(warehouse);
 
@@ -206,10 +215,6 @@ class Program
         app.UseStaticFiles();
 
         // 4. Map HTTP Minimal API Route endpoints
-
-
-
-
 
 
 
@@ -234,9 +239,46 @@ class Program
                 return Results.NotFound(new { message = $"Item ID '{request.ItemId}' does not exist." });
             }
 
-            // Invokes logic, safety constraints, and delegates tracking
-            wh.ReceiveStock(request.ItemId, item.Name, request.Quantity);
-            return Results.Ok(new { message = "Stock updated successfully.", currentQuantity = item.Quantity });
+            try
+            {
+                wh.ReceiveStock(request.ItemId, item.Name, request.Quantity);
+                return Results.Ok(new { message = "Stock updated successfully.", currentQuantity = item.Quantity });
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return Results.BadRequest(new { message = $"Insufficient stock. Cannot reduce '{item.Name}' (Current: {item.Quantity}) by {Math.Abs(request.Quantity)}." });
+            }
+        });
+
+        app.MapGet("/api/sales", () => Results.Ok(sales));
+
+        app.MapPost("/api/sales", (StockUpdateRequest request, Warehouse<InventoryItem> wh) =>
+        {
+            var item = wh[request.ItemId];
+            if (item is null)
+                return Results.NotFound(new { message = $"Item ID '{request.ItemId}' not found." });
+
+            if (item.Quantity < request.Quantity)
+                return Results.BadRequest(new { message = $"Insufficient stock for '{item.Name}'. Available: {item.Quantity}." });
+
+            wh.ReceiveStock(request.ItemId, item.Name, -request.Quantity);
+            var sale = new SaleRecord(item.Id, item.Name, request.Quantity, item.Price * request.Quantity, DateTime.Now);
+            sales.Insert(0, sale);
+            return Results.Ok(sale);
+        });
+
+        app.MapGet("/api/suppliers", () => Results.Ok(suppliers));
+
+        app.MapPost("/api/suppliers", (SupplierRecord supplier) =>
+        {
+            suppliers.Add(supplier);
+            return Results.Ok(supplier);
+        });
+
+         app.MapPost("/api/inventory/save", (Warehouse<InventoryItem> wh) =>
+        {
+            wh.SaveState("warehouse_state.bin");
+            return Results.Ok(new { message = $"Saved {wh.GetAllItems().Count()} products and {sales.Count} sales to disk." });
         });
         
         app.Run();
@@ -245,3 +287,6 @@ class Program
 
                                     // Data Transfer Object for incoming JSON payloads
 public record StockUpdateRequest(string ItemId, int Quantity);
+
+public record SaleRecord(string ItemId, string ItemName, int QuantitySold, decimal TotalAmount, DateTime SoldAt);
+public record SupplierRecord(string Name, string Contact, string Phone, string Email);

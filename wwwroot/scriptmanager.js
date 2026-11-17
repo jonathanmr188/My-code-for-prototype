@@ -1,4 +1,4 @@
-const API_URL = "/api/warehouse";
+const API_URL = "/api/inventory";
 
 // Initialize and bind system event handlers on page load
 document.addEventListener("DOMContentLoaded", () => {
@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
 // 1. Core Data Retrieval Functions
 async function loadInventory() {
     try {
-        const response = await fetch(`${API_URL}/items`);
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error("Failed to fetch inventory");
         const items = await response.json();
         renderTable(items);
         calculateTotals(items);
@@ -28,13 +29,11 @@ async function loadInventory() {
 
 async function loadSales() {
     try {
-        const response = await fetch(`${API_URL}/sales`);
+        const response = await fetch("/api/sales");
+        if (!response.ok) throw new Error("Failed to fetch sales");
         const sales = await response.json();
         renderSalesHistory(sales);
-
-        const summaryResponse = await fetch(`${API_URL}/summary`);
-        const summary = await summaryResponse.json();
-        updateSummaryCards(summary, sales);
+        updateSalesMetrics(sales);
     } catch (error) {
         showGlobalAlert("Failed to load sales tracker data.");
     }
@@ -42,7 +41,8 @@ async function loadSales() {
 
 async function loadSuppliers() {
     try {
-        const response = await fetch(`${API_URL}/suppliers`);
+        const response = await fetch("/api/suppliers");
+        if (!response.ok) throw new Error("Failed to fetch suppliers");
         const suppliers = await response.json();
         renderSuppliers(suppliers);
     } catch (error) {
@@ -57,11 +57,10 @@ function renderTable(items) {
 
     items.forEach(item => {
         const statusClass = item.quantity > 0 ? "status-instock" : "status-soldout";
-        const statusText = item.quantity > 0 ? "In Stock" : "Sold Out";
-        const supplier = item.supplier || {};
-        const supplierName = supplier.name || "Unknown";
-        const supplierPhone = supplier.phone || "N/A";
-        const supplierEmail = supplier.email || "N/A";
+        const statusText = item.status || (item.quantity > 0 ? "In Stock" : "Sold Out");
+        const supplierName = typeof item.supplier === "string" 
+            ? item.supplier 
+            : (item.supplier?.name || "General");
 
         const row = `
             <tr>
@@ -69,13 +68,7 @@ function renderTable(items) {
                 <td><strong>${item.name}</strong></td>
                 <td>${item.quantity} units</td>
                 <td>R ${Number(item.price || 0).toFixed(2)}</td>
-                <td>
-                    <div class="supplier-cell">
-                        <strong>${supplierName}</strong>
-                        <small>${supplierPhone}</small>
-                        <small>${supplierEmail}</small>
-                    </div>
-                </td>
+                <td><strong>${supplierName}</strong></td>
                 <td><span class="status-badge ${statusClass}">${statusText}</span></td>
             </tr>
         `;
@@ -136,23 +129,24 @@ function renderSalesHistory(sales) {
 // 3. Form Submission Handling Actions
 async function handleStockUpdate(e) {
     e.preventDefault();
-    const id = document.getElementById("item-id").value;
+    const itemId = document.getElementById("item-id").value.trim();
     const quantity = parseInt(document.getElementById("item-qty").value, 10);
 
     try {
         const response = await fetch(`${API_URL}/receive`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ itemId: Number(id), quantity })
+            body: JSON.stringify({ itemId, quantity })
         });
+
+        const result = await response.json().catch(() => null);
 
         if (response.ok) {
             document.getElementById("stock-form").reset();
             await loadInventory();
-            await loadSales();
+            showGlobalAlert(result?.message || "Stock updated successfully.", false);
         } else {
-            const errText = await response.text();
-            showGlobalAlert(errText);
+            showGlobalAlert(result?.message || "Unable to update stock.");
         }
     } catch (error) {
         showGlobalAlert("Network tracking error: connection refused.");
@@ -161,14 +155,14 @@ async function handleStockUpdate(e) {
 
 async function handleSale(e) {
     e.preventDefault();
-    const id = document.getElementById("sale-item-id").value;
+    const itemId = document.getElementById("sale-item-id").value.trim();
     const quantity = parseInt(document.getElementById("sale-qty").value, 10);
 
     try {
-        const response = await fetch(`${API_URL}/sale`, {
+        const response = await fetch("/api/sales", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ itemId: Number(id), quantity })
+            body: JSON.stringify({ itemId, quantity })
         });
 
         const result = await response.json().catch(() => null);
@@ -177,9 +171,12 @@ async function handleSale(e) {
             document.getElementById("sale-form").reset();
             await loadInventory();
             await loadSales();
-            showGlobalAlert(`Sale recorded: ${result.sale.itemName} (${result.sale.quantitySold} units) for R ${Number(result.sale.totalAmount).toFixed(2)}`);
+            showGlobalAlert(
+                `Sale recorded: ${result.itemName} (${result.quantitySold} units) for R ${Number(result.totalAmount).toFixed(2)}`,
+                false
+            );
         } else {
-            showGlobalAlert(result?.title || result?.detail || result || "Unable to record sale.");
+            showGlobalAlert(result?.message || "Unable to record sale.");
         }
     } catch (error) {
         showGlobalAlert("Sales processing failed. Please try again.");
@@ -190,14 +187,14 @@ async function handleSupplierAdd(e) {
     e.preventDefault();
 
     const payload = {
-        name: document.getElementById("supplier-name").value,
-        contact: document.getElementById("supplier-contact").value,
-        phone: document.getElementById("supplier-phone").value,
-        email: document.getElementById("supplier-email").value
+        name: document.getElementById("supplier-name").value.trim(),
+        contact: document.getElementById("supplier-contact").value.trim(),
+        phone: document.getElementById("supplier-phone").value.trim(),
+        email: document.getElementById("supplier-email").value.trim()
     };
 
     try {
-        const response = await fetch(`${API_URL}/suppliers`, {
+        const response = await fetch("/api/suppliers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -206,10 +203,10 @@ async function handleSupplierAdd(e) {
         if (response.ok) {
             document.getElementById("supplier-form").reset();
             await loadSuppliers();
-            showGlobalAlert("Supplier added successfully.");
+            showGlobalAlert("Supplier added successfully.", false);
         } else {
             const errText = await response.text();
-            showGlobalAlert(errText);
+            showGlobalAlert(errText || "Failed to save supplier.");
         }
     } catch (error) {
         showGlobalAlert("Supplier save failed.");
@@ -220,23 +217,19 @@ async function handleSupplierAdd(e) {
 function calculateTotals(items) {
     const total = items.reduce((sum, item) => sum + item.quantity, 0);
     const inventoryValue = items.reduce((sum, item) => sum + (item.quantity * Number(item.price || 0)), 0);
-    document.getElementById("total-volume").innerText = total;
+
+    document.querySelectorAll("#total-volume").forEach(el => {
+        el.innerText = total;
+    });
     document.getElementById("inventory-value").innerText = `R ${inventoryValue.toFixed(2)}`;
 }
 
-function updateSummaryCards(summary, sales) {
+function updateSalesMetrics(sales) {
     const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.totalAmount || 0), 0);
     const unitsSold = sales.reduce((sum, sale) => sum + Number(sale.quantitySold || 0), 0);
 
     document.getElementById("total-revenue").innerText = `R ${totalRevenue.toFixed(2)}`;
     document.getElementById("units-sold").innerText = unitsSold;
-
-    if (summary) {
-        document.getElementById("total-volume").innerText = summary.totalStockVolume ?? 0;
-        document.getElementById("inventory-value").innerText = `R ${Number(summary.totalInventoryValue || 0).toFixed(2)}`;
-        document.getElementById("total-revenue").innerText = `R ${Number(summary.totalRevenue || totalRevenue).toFixed(2)}`;
-        document.getElementById("units-sold").innerText = summary.totalUnitsSold ?? unitsSold;
-    }
 }
 
 // 5. System Health Monitors & Audit Systems
@@ -255,7 +248,7 @@ function checkLowStockAlerts(items) {
 
 async function runLowStockReport() {
     try {
-        const response = await fetch(`${API_URL}/items`);
+        const response = await fetch(API_URL);
         const items = await response.json();
         const lowStock = items.filter(item => item.quantity < 5);
 
@@ -274,15 +267,18 @@ async function saveSystemState() {
         const res = await fetch(`${API_URL}/save`, { method: "POST" });
         if (res.ok) {
             const result = await res.json();
-            alert(`State successfully saved. ${result.salesLogged} sales tracked and ${result.count} products recorded.`);
+            alert(result.message || "System state saved successfully.");
+        } else {
+            showGlobalAlert("Failed to save system state.");
         }
     } catch (e) {
         showGlobalAlert("File I/O operations halted.");
     }
 }
 
-function showGlobalAlert(message) {
+function showGlobalAlert(message, isError = true) {
     const banner = document.getElementById("alert-banner");
-    banner.innerText = `❌ Error: ${message}`;
+    banner.innerText = isError ? `❌ Error: ${message}` : `✅ ${message}`;
     banner.classList.remove("hidden");
     setTimeout(() => banner.classList.add("hidden"), 5000);
+}

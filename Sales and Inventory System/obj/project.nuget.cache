@@ -1,21 +1,21 @@
 {
   "version": 2,
-  "dgSpecHash": "dtTebsbM/LQ=",
+  "dgSpecHash": "7sJHrs9AODg=",
   "success": true,
   "projectFilePath": "C:\\Users\\Dillan Moore\\OneDrive\\Desktop\\Study material\\Integrated Coding Project\\Prototype - Iventory system\\My code for prototype\\Sales and Inventory System\\Sales and Inventory System.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\Dillan Moore\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.7\\microsoft.aspnetcore.openapi.10.0.7.nupkg.sha512",
-    "C:\\Users\\Dillan Moore\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
+    "C:\\Users\\Dillan Moore\\.nuget\\packages\\microsoft.aspnetcore.openapi\\7.0.0\\microsoft.aspnetcore.openapi.7.0.0.nupkg.sha512",
+    "C:\\Users\\Dillan Moore\\.nuget\\packages\\microsoft.openapi\\1.4.3\\microsoft.openapi.1.4.3.nupkg.sha512"
   ],
   "logs": [
     {
-      "code": "NU1903",
+      "code": "NU1603",
       "level": "Warning",
-      "message": "Package 'Microsoft.OpenApi' 2.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
+      "message": "Sales and Inventory System depends on Microsoft.AspNetCore.OpenApi (>= 2.7.5) but Microsoft.AspNetCore.OpenApi 2.7.5 was not found. Microsoft.AspNetCore.OpenApi 7.0.0 was resolved instead.",
       "projectPath": "C:\\Users\\Dillan Moore\\OneDrive\\Desktop\\Study material\\Integrated Coding Project\\Prototype - Iventory system\\My code for prototype\\Sales and Inventory System\\Sales and Inventory System.csproj",
       "warningLevel": 1,
       "filePath": "C:\\Users\\Dillan Moore\\OneDrive\\Desktop\\Study material\\Integrated Coding Project\\Prototype - Iventory system\\My code for prototype\\Sales and Inventory System\\Sales and Inventory System.csproj",
-      "libraryId": "Microsoft.OpenApi",
+      "libraryId": "Microsoft.AspNetCore.OpenApi",
       "targetGraphs": [
         "net10.0"
       ]

@@ -1,4 +1,4 @@
-const API_URL = "/api/warehouse";
+const API_URL = "/api/inventory";
 
 document.addEventListener("DOMContentLoaded", () => {
     loadInventory();
@@ -14,7 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function loadInventory() {
     try {
-        const response = await fetch(`${API_URL}/items`);
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error("Failed to fetch inventory");
         const items = await response.json();
         renderTable(items);
         calculateTotals(items);
@@ -281,3 +282,4 @@ function showGlobalAlert(message, isError = true) {
     banner.classList.remove("hidden");
     banner.classList.toggle("success-banner", !isError);
     setTimeout(() => banner.classList.add("hidden"), 5000);
+}
