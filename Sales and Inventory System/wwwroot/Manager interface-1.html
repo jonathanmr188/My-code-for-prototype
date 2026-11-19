@@ -6,146 +6,187 @@
     <title>Warehouse Inventory Management Manager Interface</title>
     <link rel="stylesheet" href="style manager.css">
 
+<Style>
+.page-nav  
+        {
+        position: 0;
+        top: 16px;
+        left: 16px;
+        display: flex;
+        gap: 20px;
+        font-family: sans-serif;
+        }
+
+.page-nav a
+        {
+        text-decoration: none;
+        font-weight: bold;
+        color: #1e293b;
+        padding: 6px 10px;
+        border-radius: 4px;
+}
+
+.page-nav a:hover 
+        {
+        background-color: #e2e8f0;
+        color: #000000;
+        }
+
+</style>
+
+    
+<nav class="page-nav" aria-label="Main navigation">
+    <a href="/">Home</a>
+    <a href="/sales interface.html">Sales</a>
+    <a href="/Manager%20interface-1.html">Manager</a>
+</nav>
+
 </head>
-    <div class="app-container">
-        <header>
-           <h1>Warehouse Management System</h1>
-            <nav class="page-nav" aria-label="Main navigation">
-            <a href="/">Sales</a>
-            <a href="/Manager%20interface-1.html">Manager</a>
-            </nav>
-            <div id="alert-banner" class="alert-banner hidden" role="status"></div>
-        </header>
+<div class="app-container">
 
-    <body>
-            <main class="dashboard-grid">
-            <section class="control-panel">
-            <div class="card">
-            <h3>Update Item Stock</h3>
-            <form id="stock-form">
-            <label for="item-id">Item ID</label>
-            <input type="number" id="item-id" required placeholder="e.g., 1">
+    <header>
+        <h1>Warehouse Management System</h1>
+        <div id="alert-banner" class="alert-banner hidden" role="status"></div>
+</header>
 
-            <label for="item-qty">Quantity Modification</label>
-            <input type="number" id="item-qty" required placeholder="Positive to add, negative to reduce">
+<body>
+        <main class="dashboard-grid">
+        <section class="control-panel">
+        <div class="card">
+        <h3>Update Item Stock</h3>
+        <form id="stock-form">
+        <label for="item-id">Item ID</label>
+        <input type="number" id="item-id" required placeholder="e.g., 1">
 
-            <button type="submit" class="btn-primary">Apply Update</button>
-            </form>
-    </div>
+        <label for="item-qty">Quantity Modification</label>
+        <input type="number" id="item-qty" required placeholder="Positive to add, negative to reduce">
 
-    <div class="card">
-            <h3>Record Sale</h3>
-                    <form id="sale-form">
-                        <label for="sale-item-id">Item ID</label>
-                        <input type="number" id="sale-item-id" required placeholder="e.g., 2">
+        <button type="submit" class="btn-primary">Apply Update</button>
+        </form>
+</div>
 
-                        <label for="sale-qty">Quantity Sold</label>
-                        <input type="number" id="sale-qty" required min="1" placeholder="Number of units sold">
+<div class="card">
+        <h3>Record Sale</h3>
+        <form id="sale-form">
+        <label for="sale-item-id">Item ID</label>
+        <input type="number" id="sale-item-id" required placeholder="e.g., 2">
 
-                        <button type="submit" class="btn-primary sale-btn">Log Sale</button>
-                    </form>
-                </div>
+        <label for="sale-qty">Quantity Sold</label>
+        <input type="number" id="sale-qty" required min="1" placeholder="Number of units sold">
+
+        <button type="submit" class="btn-primary sale-btn">Log Sale</button>
+</form>
+</div>
 
                  <!-- Stock Check for Item -->
-                 <div class="card metrics-card">
-                    <h3>📊 System Metrics</h3>
-                    <div class="metric">
-                        <span>Total Stock Volume:</span>
-                        <strong id="total-volume">0</strong>
-                    </div>
+<div class="card metrics-card">
+        <h3>System Metrics</h3>
+        <div class="metric">
+        <span>Total Stock Volume:</span>
+        <strong id="total-volume">0</strong>
+</div>
 
 
                       <!-- Updating supplier details for product requirements\ Add new supplier -->
-                    <div class="card supplier-card">
-                    <h3>🏭 Supplier Management</h3>
-                    <form id="supplier-form">
-                        <label for="supplier-name">Supplier Name</label>
-                        <input type="text" id="supplier-name" required placeholder="e.g., TechSource SA">
+<div class="card supplier-card">
+        <h3>Supplier Management</h3>
+        <form id="supplier-form">
+        <label for="supplier-name">Supplier Name</label>
+        <input type="text" id="supplier-name" required placeholder="e.g., Supplies Pty Ltd.">
 
-                        <label for="supplier-contact">Contact Person</label>
-                        <input type="text" id="supplier-contact" placeholder="e.g., Mzansi Mokoena">
+        <label for="supplier-contact">Contact Person</label>
+        <input type="text" id="supplier-contact" placeholder="e.g., Jamie De Wee">
 
-                        <label for="supplier-phone">Phone Number</label>
-                        <input type="text" id="supplier-phone" placeholder="e.g., +27 11 555 0123">
+        <label for="supplier-phone">Number</label>
+        <input type="text" id="supplier-phone" placeholder="e.g., 011 555 0123">
 
-                        <label for="supplier-email">Email</label>
-                        <input type="email" id="supplier-email" placeholder="supplier@email.com">
+        <label for="supplier-email">gmail</label>
+        <input type="email" id="supplier-email" placeholder="supplier@gmail.com">
 
-                        <button type="submit" class="btn-primary supplier-btn">Add Supplier</button>
-                    </form>
+        <button type="submit" class="btn-primary supplier-btn">Add Supplier</button>
+</form>
 
 
                     <!-- Supplier details for product requirements -->
-                    <div class="supplier-list-wrapper">
-                        <h4>Supplier Directory</h4>
-                        <table class="supplier-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Contact</th>
-                                    <th>Phone</th>
-                                    <th>Email</th>
-                                </tr>
-                            </thead>
-                            <tbody id="supplier-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
+<div class="supplier-list-wrapper">
+        <h4>Supplier Directory</h4>
+            <table class="supplier-table">
+            <thead>
+                <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Phone</th>
+                <th>Email</th>
+                </tr>
+            </thead>
+            <tbody id="supplier-table-body"></tbody>
+            </table>
+</div>
+</div>
 
 
                 <!-- Business metrics and reports -->
-                <div class="card metrics-card">
-                    <h3>📊 System Metrics</h3>
-                    <div class="metric">
-                        <span>Total Stock Volume:</span>
-                        <strong id="total-volume">0</strong>
-                    </div>
-                    <div class="metric">
-                        <span>Inventory Value:</span>
-                        <strong id="inventory-value">R 0.00</strong>
-                    </div>
-                    <div class="metric">
-                        <span>Total Revenue:</span>
-                        <strong id="total-revenue">R 0.00</strong>
-                    </div>
-                    <div class="metric">
-                        <span>Units Sold:</span>
-                        <strong id="units-sold">0</strong>
-                    </div>
-                    <div class="actions">
-                        <button id="btn-report" class="btn-secondary">Run Low Stock Report</button>
-                        <button id="btn-save" class="btn-secondary">Save System State</button>
-                    </div>
-                    </div> <!-- Close actions div -->
-                </div> 
+<div class="card metrics-card">
+        <h3>System Metrics</h3>
+<div class="metric">
+        <span>Total Stock Volume:</span>
+        <strong id="total-volume">0</strong>
 
-                            <section class="display-panel">
-                <div class="card">
-                    <h3>📋 Current Inventory Stock</h3>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Product Name</th>
-                                    <th>Quantity</th>
-                                    <th>Price (ZAR)</th>
-                                    <th>Supplier</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="inventory-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
+</div>
+<div class="metric">
+        <span>Inventory Value:</span>
+        <strong id="inventory-value">R 0.00</strong>
+                    
+</div>
+<div class="metric">
+        <span>Total Revenue:</span>
+        <strong id="total-revenue">R 0.00</strong>
 
-                <div class="card">
-                    <h3>📈 Sales Tracker</h3>
-                    <ul id="sales-list" class="sales-list"></ul>
-                </div>
-            </section>
-        </main>
+</div>
+<div class="metric">
+        <span>Units Sold:</span>
+        <strong id="units-sold">0</strong>
+</div>
+<div class="actions">
+        <button id="btn-report" class="btn-secondary">Run Low Stock Report</button>
+        <button id="btn-save" class="btn-secondary">Save System State</button>
+    
+</div>
+</div> <!-- Close actions div -->
+</div> 
+
+<section class="display-panel">
+<div class="card">
+                    
+        <h3>Current Inventory Stock</h3>
+
+<div class="table-wrapper">
+            <table>
+            <thead>
+                <tr>
+                <th>ID</th>
+                <th>Product Name</th>
+                <th>Quantity</th>
+                <th>Price (ZAR)</th>
+                <th>Supplier</th>
+                <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-table-body"></tbody>
+            </table>
+</div>
+        
+</div>
+
+<div class="card">
+        <h3>Sales Tracker</h3>
+        <ul id="sales-list" class="sales-list"></ul>
+
     </div>
-    <script src="scriptmanager.js"></script>
+</section>
+</main>
+
+</div>
+<script src="scriptmanager.js"></script>
 </body>
 </html>

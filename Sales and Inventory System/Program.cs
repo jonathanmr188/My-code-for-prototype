@@ -5,6 +5,8 @@ using System.Linq;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 
 public enum ItemStatus 
 { 
@@ -15,9 +17,9 @@ public enum ItemStatus
 
 public interface IStockable 
 { 
-    string Id { get; } 
-    string Name { get; }
-    int Quantity { get; }
+string Id { get; } 
+string Name { get; }
+int Quantity { get; }
 }
 
 public class InventoryItem : IStockable
@@ -99,33 +101,33 @@ public class Warehouse<T> where T : class, IStockable
 
     public Warehouse() 
     { 
-        inventory = new Dictionary<string, T>(); 
+    inventory = new Dictionary<string, T>(); 
     } 
  
     public T this[string id] 
     { 
-        get { return inventory.ContainsKey(id) ? inventory[id] : null; } 
+    get { return inventory.ContainsKey(id) ? inventory[id] : null; } 
     }
 
     public void SeedItem(string id, T item)
     {
-        inventory[id] = item;
+    inventory[id] = item;
     }
 
     public IEnumerable<T> GetAllItems()
     {
-        return inventory.Values;
+    return inventory.Values;
     }
 
 
     public virtual void OnLowStockAlert(string itemName) 
     { 
-        LowStockAlert?.Invoke(itemName); 
+    LowStockAlert?.Invoke(itemName); 
     } 
 
     private bool ItemExistsInRepository(string itemId)
     {
-        return inventory.ContainsKey(itemId);
+    return inventory.ContainsKey(itemId);
     }
 
     public void ReceiveStock(string itemId, string name, int quantity) 
@@ -134,27 +136,26 @@ public class Warehouse<T> where T : class, IStockable
         { 
             if (!ItemExistsInRepository(itemId)) 
             { 
-                throw new KeyNotFoundException("Item was not found"); 
-            } 
-            
+            throw new KeyNotFoundException("Item was not found"); 
+            }         
             var item = inventory[itemId];
+
             if (item is InventoryItem invItem)
             {
-                                            
-                                            
-                                            // This will ensure bad request response and not crash the application if interger is negative
-        invItem.Quantity += quantity;
+                                                                                
+                                        // This will ensure bad request response and not crash the application if interger is negative
+             invItem.Quantity += quantity;
         
         if (invItem.Quantity < 5)
         {
-            OnLowStockAlert(invItem.Name);
+        OnLowStockAlert(invItem.Name);
         }
         
             }
         }
         catch (KeyNotFoundException ex) 
         { 
-            Console.WriteLine($"Item not found: {ex.Message}");
+        Console.WriteLine($"Item not found: {ex.Message}");
         }  
     } 
 
@@ -164,9 +165,9 @@ public class Warehouse<T> where T : class, IStockable
         {
             foreach (var item in inventory.Values) 
             { 
-                writer.Write(item.Id); 
-                writer.Write(item.Name); 
-                writer.Write(item.Quantity); 
+            writer.Write(item.Id); 
+            writer.Write(item.Name); 
+            writer.Write(item.Quantity); 
             } 
         }
     }
@@ -193,29 +194,97 @@ class Program
         
         warehouse.LowStockAlert += AuditLogger.LogAlert;
 
+
+                                // suppliers and sales records
          warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 350.00m, "Cleanaway Pty Ltd."));
         warehouse.SeedItem("2", new InventoryItem("2", "A4 Paper - 500 Sheets", 3, 150.00m, "PaperWorks Pty Ltd.")); 
         warehouse.SeedItem("3", new InventoryItem("3", "Projector", 7, 1499.00m, "NolanTech Pty Ltd"));
-
-        // ADDED: In-memory storage for Suppliers and Sales tables in your HTML
+        warehouse.SeedItem("4", new InventoryItem("4", "Screen monitor", 7, 1000.00m, "Grant-tech Pty Ltd"));
+        warehouse.SeedItem("5", new InventoryItem("5", "12-pen box(red)", 15, 75.00m, "Station-stationary Pty Ltd"));
+        warehouse.SeedItem("6", new InventoryItem("6", " 192 pageNotebook", 15, 55.00m, "Suppliers-supply Pty Ltd"));
+        
         var suppliers = new List<SupplierRecord>
         {
-            new("Cleanaway Pty Ltd.", "Joy Babedi", "082 123 4567", "orders@cleanaway.co.za"),
-            new("PaperWorks Pty Ltd.", "Jonathan Moore", "079 123 4567", "sales@paperworks.co.za"),
-            new("NolanTech Pty Ltd", "Nolan Moore", "066 245 6789", "info@nolantech.co.za")
+        new("Cleanaway Pty Ltd.", "Joy Babedi", "082 123 4567", "orders@cleanaway.co.za"),
+        new("PaperWorks Pty Ltd.", "Jonathan Moore", "079 123 4567", "sales@paperworks.co.za"),
+        new("NolanTech Pty Ltd", "Nolan Moore", "066 245 6789", "info@nolantech.co.za"),
+        new("Suppliers-supply Pty Ltd", "Jonathan Johannes", "076 789 7779", "orders@alltrade.co.za"),
+        new("Station-stationary Pty Ltd", "Evelina Cecilia", "0722 299 6009", "Station@stationary.co.za"),
+        new("Grant-tech Pty Ltd", "Grant Mosley", "066 001 5465", "Grant@tech.co.za")
         };
         var sales = new List<SaleRecord>();
 
+        var managerAccounts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+        { "admin", "admin123!" },
+        { "dillan", "inventory!" },
+        };
+
         builder.Services.AddSingleton(warehouse);
+
+        builder.Services.AddAuthentication("ManagerCookie")
+            .AddCookie("ManagerCookie", options =>
+            {
+             options.LoginPath = "/login.html";
+            });
+        builder.Services.AddAuthorization();
 
         var app = builder.Build();
         
+
+
+        app.UseAuthentication();
+        app.UseAuthorization();
+
+        app.MapPost("/api/login", async (LoginRequest request, HttpContext http) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            {
+                return Results.BadRequest(new { message = "Username and password are required." });
+            }
+
+            if (managerAccounts.TryGetValue(request.Username.Trim(), out var validPassword) &&
+                validPassword == request.Password)
+            {
+                var claims = new List<Claim>
+                {
+                    new(ClaimTypes.Name, request.Username.Trim()),
+                    new(ClaimTypes.Role, "Manager")
+            };
+
+        var identity = new ClaimsIdentity(claims, "ManagerCookie");
+        await http.SignInAsync("ManagerCookie", new ClaimsPrincipal(identity));
+
+        return Results.Ok(new { message = "Login successful." });
+        }
+
+        return Results.Json(new { message = "Invalid username or password." }, statusCode: 401);
+        });
+
+        app.MapPost("/api/logout", async (HttpContext http) =>
+        {
+        await http.SignOutAsync("ManagerCookie");
+        return Results.Ok(new { message = "Logged out." });
+        });
+
+        
+        app.Use(async (context, next) =>
+        {
+        var path = Uri.UnescapeDataString(context.Request.Path.Value ?? "");
+        if (path.Equals("/Manager interface-1.html", StringComparison.OrdinalIgnoreCase) &&
+        context.User.Identity?.IsAuthenticated != true)
+        {
+        context.Response.Redirect("/login.html");
+        return;
+        }
+        await next();
+        });
+
                                     // Configuration for handling static hosting files via Sales and Inventory
         app.UseDefaultFiles();
         app.UseStaticFiles();
 
-        // 4. Map HTTP Minimal API Route endpoints
-
+                                    
 
 
                                     //get: all inventory items and single item by ID search
@@ -232,28 +301,29 @@ class Program
 
                                     // Update the item quantities ensureing that the item exists and quantity is valid above 5
         app.MapPost("/api/inventory/receive", (StockUpdateRequest request, Warehouse<InventoryItem> wh) => 
-        {
-            var item = wh[request.ItemId];
+        
+        {var item = wh[request.ItemId];
             if (item is null)
             {
-                return Results.NotFound(new { message = $"Item ID '{request.ItemId}' does not exist." });
+            return Results.NotFound(new { message = $"Item ID '{request.ItemId}' does not exist." });
             }
 
             try
             {
-                wh.ReceiveStock(request.ItemId, item.Name, request.Quantity);
-                return Results.Ok(new { message = "Stock updated successfully.", currentQuantity = item.Quantity });
+            wh.ReceiveStock(request.ItemId, item.Name, request.Quantity);
+            return Results.Ok(new { message = "Stock updated successfully.", currentQuantity = item.Quantity });
             }
+
             catch (ArgumentOutOfRangeException)
             {
-                return Results.BadRequest(new { message = $"Insufficient stock. Cannot reduce '{item.Name}' (Current: {item.Quantity}) by {Math.Abs(request.Quantity)}." });
+            return Results.BadRequest(new { message = $"Insufficient stock. Cannot reduce '{item.Name}' (Current: {item.Quantity}) by {Math.Abs(request.Quantity)}." });
             }
-        });
+            });
 
         app.MapGet("/api/sales", () => Results.Ok(sales));
 
         app.MapPost("/api/sales", (StockUpdateRequest request, Warehouse<InventoryItem> wh) =>
-        {
+            {
             var item = wh[request.ItemId];
             if (item is null)
                 return Results.NotFound(new { message = $"Item ID '{request.ItemId}' not found." });
@@ -265,28 +335,29 @@ class Program
             var sale = new SaleRecord(item.Id, item.Name, request.Quantity, item.Price * request.Quantity, DateTime.Now);
             sales.Insert(0, sale);
             return Results.Ok(sale);
-        });
+            });
 
         app.MapGet("/api/suppliers", () => Results.Ok(suppliers));
 
         app.MapPost("/api/suppliers", (SupplierRecord supplier) =>
         {
-            suppliers.Add(supplier);
-            return Results.Ok(supplier);
+        suppliers.Add(supplier);
+        return Results.Ok(supplier);
         });
 
          app.MapPost("/api/inventory/save", (Warehouse<InventoryItem> wh) =>
         {
-            wh.SaveState("warehouse_state.bin");
-            return Results.Ok(new { message = $"Saved {wh.GetAllItems().Count()} products and {sales.Count} sales to disk." });
+        wh.SaveState("warehouse_state.bin");
+        
+        return Results.Ok(new { message = $"Saved {wh.GetAllItems().Count()} products and {sales.Count} sales to disk." });
         });
         
         app.Run();
     } 
 }
 
-                                    // Data Transfer Object for incoming JSON payloads
+                                    // Allows the data transfer for the object coming from JSON
 public record StockUpdateRequest(string ItemId, int Quantity);
-
 public record SaleRecord(string ItemId, string ItemName, int QuantitySold, decimal TotalAmount, DateTime SoldAt);
 public record SupplierRecord(string Name, string Contact, string Phone, string Email);
+public record LoginRequest(string Username, string Password);

@@ -1,6 +1,6 @@
 const API_URL = "/api/inventory";
 
-// Initialize and bind system event handlers on page load
+                        // Initialize and bind system event handlers on page load
 document.addEventListener("DOMContentLoaded", () => {
     loadInventory();
     loadSales();
@@ -10,7 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-save").addEventListener("click", saveSystemState);
 });
 
-// 1. Core Data Retrieval Functions
+
+
+                                    // Data Fetching Engine
 async function loadInventory() {
     try {
         const response = await fetch(API_URL);
@@ -35,7 +37,7 @@ async function loadSales() {
     }
 }
 
-// 2. Data Rendering Engines
+                                 // This is for the Data to Render Engine
 function renderTable(items) {
     const tableBody = document.getElementById("inventory-table-body");
     tableBody.innerHTML = "";
@@ -89,7 +91,7 @@ function renderSalesHistory(sales) {
     });
 }
 
-// 3. Form Submission Handling Actions
+                                // 3. This handles the sale transaction, it Handle the action
 async function handleSale(e) {
     e.preventDefault();
     const itemId = document.getElementById("sale-item-id").value.trim();
@@ -120,13 +122,16 @@ async function handleSale(e) {
     }
 }
 
-// 4. Calculations & KPI Cards Updating Engine
+
+
+
 function calculateTotals(items) {
     const total = items.reduce((sum, item) => sum + item.quantity, 0);
     document.getElementById("total-volume").innerText = total;
 }
 
-// 5. System Health Monitors & Audit Systems
+
+                                        // Sales Audit System
 function checkLowStockAlerts(items) {
     const lowStock = items.filter(item => item.quantity < 5);
     const alertBanner = document.getElementById("alert-banner");
@@ -139,6 +144,8 @@ function checkLowStockAlerts(items) {
         alertBanner.classList.add("hidden");
     }
 }
+
+
 
 async function runLowStockReport() {
     try {

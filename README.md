@@ -48,5 +48,7 @@ The browser pages and API host are not yet wired together for a complete end-to-
 
 These are integration tasks for a future iteration; the repository currently documents the intended prototype UI and API behavior rather than a fully operational inventory service.
 
+
+## First solution implemented:
 Challenges and changes made, solution
 HTML, CSS and JavaScript files saved under its default wwwroot directory.

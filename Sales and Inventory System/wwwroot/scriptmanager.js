@@ -11,9 +11,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("supplier-form").addEventListener("submit", handleSupplierAdd);
     document.getElementById("btn-report").addEventListener("click", runLowStockReport);
     document.getElementById("btn-save").addEventListener("click", saveSystemState);
+
+    document.getElementById("btn-logout")?.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await fetch("/api/logout", { method: "POST" });
+        window.location.href = "/";
+        });
 });
 
-// 1. Core Data Retrieval Functions
+                                  // Data Fetching Engines
 async function loadInventory() {
     try {
         const response = await fetch(API_URL);
@@ -50,7 +56,7 @@ async function loadSuppliers() {
     }
 }
 
-// 2. Data Rendering Engines
+                                 // This is for the Data to Render Engine
 function renderTable(items) {
     const tableBody = document.getElementById("inventory-table-body");
     tableBody.innerHTML = "";
@@ -126,7 +132,7 @@ function renderSalesHistory(sales) {
     });
 }
 
-// 3. Form Submission Handling Actions
+                                // 3. This handles the sale transaction, it Handle the action
 async function handleStockUpdate(e) {
     e.preventDefault();
     const itemId = document.getElementById("item-id").value.trim();
@@ -213,7 +219,8 @@ async function handleSupplierAdd(e) {
     }
 }
 
-// 4. Calculations & KPI Cards Updating Engine
+
+
 function calculateTotals(items) {
     const total = items.reduce((sum, item) => sum + item.quantity, 0);
     const inventoryValue = items.reduce((sum, item) => sum + (item.quantity * Number(item.price || 0)), 0);
@@ -232,14 +239,16 @@ function updateSalesMetrics(sales) {
     document.getElementById("units-sold").innerText = unitsSold;
 }
 
-// 5. System Health Monitors & Audit Systems
+
+
+                                        // Sales Audit System
 function checkLowStockAlerts(items) {
     const lowStock = items.filter(item => item.quantity < 5);
     const alertBanner = document.getElementById("alert-banner");
 
     if (lowStock.length > 0) {
         const names = lowStock.map(i => i.name).join(", ");
-        alertBanner.innerText = `⚠️ Low Stock Alert (<5 remaining): ${names}`;
+        alertBanner.innerText = `Low Stock Alert (<5 remaining): ${names}`;
         alertBanner.classList.remove("hidden");
     } else {
         alertBanner.classList.add("hidden");
@@ -278,7 +287,7 @@ async function saveSystemState() {
 
 function showGlobalAlert(message, isError = true) {
     const banner = document.getElementById("alert-banner");
-    banner.innerText = isError ? `❌ Error: ${message}` : `✅ ${message}`;
+    banner.innerText = isError ? `Error: ${message}` : `✅ ${message}`;
     banner.classList.remove("hidden");
     setTimeout(() => banner.classList.add("hidden"), 5000);
 }
