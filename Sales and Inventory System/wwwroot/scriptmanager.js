@@ -1,6 +1,6 @@
 const API_URL = "/api/inventory";
 
-// Initialize and bind system event handlers on page load
+                               // Initialize and connect system event handlers on page
 document.addEventListener("DOMContentLoaded", () => {
     loadInventory();
     loadSales();
@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
 });
 
-                                  // Data Fetching Engines
+                                    // Data Fetching Engine
 async function loadInventory() {
     try {
         const response = await fetch(API_URL);
@@ -287,7 +287,7 @@ async function saveSystemState() {
 
 function showGlobalAlert(message, isError = true) {
     const banner = document.getElementById("alert-banner");
-    banner.innerText = isError ? `Error: ${message}` : `✅ ${message}`;
+    banner.innerText = isError ? `Error: ${message}` : `${message}`;
     banner.classList.remove("hidden");
-    setTimeout(() => banner.classList.add("hidden"), 5000);
+     setTimeout(() => banner.classList.add("hidden"), 5000);
 }

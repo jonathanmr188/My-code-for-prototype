@@ -1,6 +1,6 @@
 const API_URL = "/api/inventory";
 
-                        // Initialize and bind system event handlers on page load
+                                // Initialize and connect system event handlers on page
 document.addEventListener("DOMContentLoaded", () => {
     loadInventory();
     loadSales();
@@ -179,7 +179,7 @@ async function saveSystemState() {
 
 function showGlobalAlert(message, isError = true) {
     const banner = document.getElementById("alert-banner");
-    banner.innerText = isError ? `❌ Error: ${message}` : `✅ ${message}`;
+    banner.innerText = isError ? `Error: ${message}` : `${message}`;
     banner.classList.remove("hidden");
     setTimeout(() => banner.classList.add("hidden"), 5000);
 }
