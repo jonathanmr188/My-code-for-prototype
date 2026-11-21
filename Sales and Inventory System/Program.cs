@@ -28,7 +28,6 @@ public class InventoryItem : IStockable
     private string _name;
     private int _quantity;
 
-    
     public decimal Price { get; set; }
     public string Supplier { get; set; }
     public string Status => Quantity == 0 ? "Sold Out" : (Quantity < 5 ? "Low Stock" : "In Stock");
@@ -143,7 +142,7 @@ public class Warehouse<T> where T : class, IStockable
             if (item is InventoryItem invItem)
             {
                                                                                 
-                                        // This will ensure bad request response and not crash the application if interger is negative
+                                            // This will ensure bad request response and not crash the application if interger is negative
              invItem.Quantity += quantity;
         
         if (invItem.Quantity < 5)
@@ -181,9 +180,9 @@ public static class AuditLogger
     } 
 } 
 
-                                    //Register the Warehouse class as a application
-                                    //Wire up the LowStockAlert event to the AuditLogger
-                                    //Initialize/Seed the Warehouse with mock data
+                                        //Register the Warehouse class as a application
+                                          //Wire up the LowStockAlert event to the AuditLogger
+                                          //Initialize/Seed the Warehouse with mock data
 class Program 
 { 
     static void Main(string[] args) 
@@ -195,8 +194,8 @@ class Program
         warehouse.LowStockAlert += AuditLogger.LogAlert;
 
 
-                                // suppliers and sales records
-         warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 350.00m, "Cleanaway Pty Ltd."));
+                                         // suppliers and sales records
+         warehouse.SeedItem("1", new InventoryItem("1", "House Mop", 12, 35.00m, "Cleanaway Pty Ltd."));
         warehouse.SeedItem("2", new InventoryItem("2", "A4 Paper - 500 Sheets", 3, 150.00m, "PaperWorks Pty Ltd.")); 
         warehouse.SeedItem("3", new InventoryItem("3", "Projector", 7, 1499.00m, "NolanTech Pty Ltd"));
         warehouse.SeedItem("4", new InventoryItem("4", "Screen monitor", 7, 1000.00m, "Grant-tech Pty Ltd"));
@@ -301,7 +300,7 @@ class Program
 
 
 
-                                    // Update the item quantities ensureing that the item exists and quantity is valid above 5
+                                        // Update the item quantities ensureing that the item exists and quantity is valid above 5
         app.MapPost("/api/inventory/receive", (StockUpdateRequest request, Warehouse<InventoryItem> wh) => 
         
         {var item = wh[request.ItemId];
@@ -358,7 +357,7 @@ class Program
     } 
 }
 
-                                    // Allows the data transfer for the object coming from JSON
+                                        // Allows the data transfer for the object coming from JSON
 public record StockUpdateRequest(string ItemId, int Quantity);
 public record SaleRecord(string ItemId, string ItemName, int QuantitySold, decimal TotalAmount, DateTime SoldAt);
 public record SupplierRecord(string Name, string Contact, string Phone, string Email);
